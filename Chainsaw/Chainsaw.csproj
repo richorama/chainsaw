@@ -40,6 +40,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BufferRing.cs" />
+    <Compile Include="Database.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="LogFile.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

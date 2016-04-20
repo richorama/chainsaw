@@ -11,6 +11,7 @@ namespace Chainsaw
     {
         public long Position { get; set; }
         public int Length { get; set; }
+        public int Generation { get; set; }
         public LogFile LogFile { get; set; }
     }
 
@@ -25,7 +26,7 @@ namespace Chainsaw
         public long Capacity { get; private set; }
         public string Directory { get; private set; }
         object sync = new object();
-        public Action<LogFile> HandleFullLog { get; private set; }
+        public Action<LogFile, int> HandleFullLog { get; private set; }
 
         LogFile AddLogFile()
         {
@@ -72,7 +73,7 @@ namespace Chainsaw
             }
         }
 
-        public Log(string directory, long capacity, Action<LogFile> handleFullLog = null)
+        public Log(string directory, long capacity, Action<LogFile, int> handleFullLog = null)
         {
             this.Files = new List<LogFile>();
             this.Capacity = capacity;
@@ -88,12 +89,13 @@ namespace Chainsaw
             var lastActive = this.ActiveFile;
             
             this.ActiveFile = null;
+            var nextGen = Interlocked.Increment(ref generation);
 
             // send out a notification that the file is ready for compaction
             var thread = new Thread(() =>
             {
                 if (null == this.HandleFullLog) return;
-                this.HandleFullLog(lastActive);
+                this.HandleFullLog(lastActive, nextGen -1);
                 lastActive.Clean();
             });
             thread.Start();
@@ -108,7 +110,7 @@ namespace Chainsaw
             SaveManifest();
         }
 
-        public RecordPosition Append(byte[] buffer, int bufferLength = -1)
+        public RecordPosition Append(byte[] buffer, int offset = 0, int bufferLength = -1)
         {
             if (bufferLength == -1)
             {
@@ -127,7 +129,6 @@ namespace Chainsaw
                     {
                         RotateLogs();
                         Interlocked.Exchange(ref highWaterMark, 0);
-                        Interlocked.Increment(ref generation);
                     }
                     mark = Interlocked.Add(ref highWaterMark, length);
                     markGeneration = this.generation;
@@ -138,7 +139,7 @@ namespace Chainsaw
             
             using (var view = this.ActiveFile.File.CreateViewAccessor(start, length, MemoryMappedFileAccess.Write))
             {
-                view.WriteArray<byte>(headerSize, buffer, 0, bufferLength);
+                view.WriteArray<byte>(headerSize, buffer, offset, bufferLength);
                 view.Write(0, bufferLength);
                 view.Flush();
             }
@@ -146,7 +147,8 @@ namespace Chainsaw
             {
                 Position = start + headerSize,
                 Length = bufferLength,
-                LogFile = this.ActiveFile
+                LogFile = this.ActiveFile,
+                Generation = markGeneration
             };
         }
 

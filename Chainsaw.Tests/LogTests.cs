@@ -9,7 +9,7 @@ using System.Diagnostics;
 namespace Chainsaw.Tests
 {
     [TestClass]
-    public class UnitTest1
+    public class LogTests
     {
         [TestMethod]
         public void TestLogFileToString()
@@ -116,7 +116,7 @@ namespace Chainsaw.Tests
                 buffer[i] = (byte)i;
             }
             var generationCount = 0;
-            Action<LogFile> logFull = x => generationCount++;
+            Action<LogFile, int> logFull = (_, __) => generationCount++;
             using (var log = new Log("drain", 4 * 1024, logFull))
             {
                 for (var i = 0; i < 10000; i++)
