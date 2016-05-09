@@ -21,6 +21,7 @@ namespace Chainsaw.Tests
                     Assert.IsNotNull(allocation);
                     Assert.AreEqual(1000, allocation.Length);
                     Assert.IsNotNull(allocation.Buffer.Buffer);
+                    Assert.IsTrue(allocation.Start + allocation.Length <= buffer.Capacity);
                 }
             }
             Assert.AreEqual(2, buffer.Ring.Count);

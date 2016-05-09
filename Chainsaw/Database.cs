@@ -27,9 +27,9 @@ namespace Chainsaw
             buffer = new BufferRing();
         }
 
-        public void Append(Operation operation, byte[] key, byte[] value)
+        public void Append(Operation operation, byte[] key, int keyPosition, int keyLength, byte[] value, int valuePosition, int valueLength)
         {
-            var bufferSize = LENGTH_SIZE + ENUM_SIZE + key.Length + value.Length;
+            var bufferSize = LENGTH_SIZE + ENUM_SIZE + keyLength + valueLength;
             using (var bufferLease = buffer.Allocate(bufferSize))
             {
 
@@ -40,10 +40,10 @@ namespace Chainsaw
                 n-z => value
                 */
 
-                Buffer.BlockCopy(BitConverter.GetBytes(key.Length), 0, bufferLease.Buffer.Buffer, bufferLease.Start, LENGTH_SIZE);
+                Buffer.BlockCopy(BitConverter.GetBytes(keyLength), 0, bufferLease.Buffer.Buffer, bufferLease.Start, LENGTH_SIZE);
                 bufferLease.Buffer.Buffer[bufferLease.Start + LENGTH_SIZE] = (byte)operation;
-                Buffer.BlockCopy(key, 0, bufferLease.Buffer.Buffer, bufferLease.Start + LENGTH_SIZE + 1, key.Length);
-                Buffer.BlockCopy(value, 0, bufferLease.Buffer.Buffer, bufferLease.Start + LENGTH_SIZE + 1 + key.Length, value.Length);
+                Buffer.BlockCopy(key, keyPosition, bufferLease.Buffer.Buffer, bufferLease.Start + LENGTH_SIZE + 1, keyLength);
+                Buffer.BlockCopy(value, valuePosition, bufferLease.Buffer.Buffer, bufferLease.Start + LENGTH_SIZE + 1 + keyLength, valueLength);
 
                 log.Append(bufferLease.Buffer.Buffer, bufferLease.Start, bufferSize);
             }
