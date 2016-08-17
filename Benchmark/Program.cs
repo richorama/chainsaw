@@ -8,6 +8,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+/*
+[Ctrl] + [F5]
+300000 in 5128ms
+     
+*/
+
+
 namespace Benchmark
 {
     class Program
