@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 /*
 [Ctrl] + [F5]
 300000 in 5128ms
+5619
      
 */
 
@@ -19,6 +20,7 @@ namespace Benchmark
 {
     class Program
     {
+
         static void Main(string[] args)
         {
             if (Directory.Exists("raw")) Directory.Delete("raw", true);

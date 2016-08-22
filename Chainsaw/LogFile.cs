@@ -5,6 +5,7 @@ using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Wire;
 
 namespace Chainsaw
 {
@@ -31,6 +32,7 @@ namespace Chainsaw
         public MemoryMappedFile File { get; private set; }
         public long Capacity { get; private set; }
         public string Filename { get; private set; }
+        Serializer serializer = new Serializer();
         public void Clean()
         {
             lock (this.File)
@@ -72,16 +74,21 @@ namespace Chainsaw
             }
         }
 
-        public void ReadBuffer(RecordPosition position, byte[] buffer)
+        public object Read(RecordPosition position)
         {
-            if (buffer.Length < position.Length)
-            {
-                throw new ArgumentException("buffer too small");
-            }
-
             using (var view = this.File.CreateViewAccessor(position.Position, position.Length, MemoryMappedFileAccess.Read))
+            using (var stream = this.File.CreateViewStream(position.Position, position.Length))
             {
-                view.ReadArray(0, buffer, 0, position.Length);
+                return this.serializer.Deserialize(stream);
+            }
+        }
+
+        public T Read<T>(RecordPosition position)
+        {
+            using (var view = this.File.CreateViewAccessor(position.Position, position.Length, MemoryMappedFileAccess.Read))
+            using (var stream = this.File.CreateViewStream(position.Position, position.Length))
+            {
+                return this.serializer.Deserialize<T>(stream);
             }
         }
 

@@ -8,6 +8,12 @@ using System.Diagnostics;
 
 namespace Chainsaw.Tests
 {
+
+    public class TestPoco
+    {
+        public int Value { get; set; }
+    }
+
     [TestClass]
     public class LogTests
     {
@@ -32,48 +38,31 @@ namespace Chainsaw.Tests
         }
 
 
+
+
         [TestMethod]
         public void TestBasicCrud()
         {
+          
             if (Directory.Exists("test")) Directory.Delete("test", true);
-
-            var rand = new Random();
-            long index = -1;
 
             using (var log = new Log("test", 4 * 1024))
             {
                 for (var i = 0; i < 100; i++)
                 {
-                    var buffer = new byte[rand.Next(100) + 1];
-                    for (var j = 0; j < buffer.Length; j++)
-                    {
-                        buffer[j] = (byte)j;
-                    }
-
-                    // ensure that the high water mark is being incremented
-                    var position = log.Append(buffer);
-
-                    Assert.AreEqual(buffer.Length, position.Length);
-
-                    index = position.Position;
+                    log.Append(new TestPoco { Value = i + 1 });
                 }
             }
             using (var log2 = new Log("test", 4 * 1024))
             {
-                var buffer2 = new byte[101];
-                index = -1;
                 var counter = 0;
                 foreach (var logFile in log2.Files)
                 {
                     foreach (var position in logFile.ReadPositions())
                     {
-                        logFile.ReadBuffer(position, buffer2);
-                        index = position.Position;
-                        Assert.AreNotEqual(0, position.Length);
-                        for (var i = 0; i < position.Length; i++)
-                        {
-                            Assert.AreEqual(i, buffer2[i]);
-                        }
+                        var value2 = logFile.Read<TestPoco>(position);
+                        Assert.IsNotNull(value2);
+                        Assert.AreNotEqual(0, value2.Value);
                         counter++;
                     }
                 }

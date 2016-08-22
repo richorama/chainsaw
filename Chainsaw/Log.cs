@@ -4,13 +4,14 @@ using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Threading;
+using Wire;
 
 namespace Chainsaw
 {
     public class RecordPosition
     {
         public long Position { get; set; }
-        public int Length { get; set; }
+        public long Length { get; set; }
         public int Generation { get; set; }
         public LogFile LogFile { get; set; }
     }
@@ -27,6 +28,7 @@ namespace Chainsaw
         public string Directory { get; private set; }
         object sync = new object();
         public Action<LogFile, int> HandleFullLog { get; private set; }
+        Serializer serializer = new Serializer();
 
         LogFile AddLogFile()
         {
@@ -110,14 +112,15 @@ namespace Chainsaw
             SaveManifest();
         }
 
-        public RecordPosition Append(byte[] buffer, int offset = 0, int bufferLength = -1)
+        public RecordPosition Append(object value)
         {
-            if (bufferLength == -1)
-            {
-                bufferLength = buffer.Length;
-            }
+            if (null == value) throw new ArgumentNullException(nameof(value));
 
-            var length = bufferLength + headerSize;
+            var serializer = new Serializer();
+            var lengthStream = new LengthStream();
+            serializer.Serialize(value, lengthStream);
+
+            var length = lengthStream.Length + headerSize;
             var mark = Interlocked.Add(ref highWaterMark, length);
             var markGeneration = this.generation;
             if (mark > this.Capacity)
@@ -136,17 +139,23 @@ namespace Chainsaw
             }
 
             var start = mark - length;
-            
-            using (var view = this.ActiveFile.File.CreateViewAccessor(start, length, MemoryMappedFileAccess.Write))
+
+            //using (var view = this.ActiveFile.File.CreateViewAccessor(start, length, MemoryMappedFileAccess.Write))
+            using (var stream = this.ActiveFile.File.CreateViewStream(start, length))
             {
-                view.WriteArray<byte>(headerSize, buffer, offset, bufferLength);
-                view.Write(0, bufferLength);
-                view.Flush();
+                //var stream = new ViewAccessorStream(view, length);
+                stream.Position = headerSize;
+                serializer.Serialize(value, stream);
+
+                //view.WriteArray<byte>(headerSize, buffer, offset, bufferLength);
+                stream.Position = 0;
+                stream.WriteInt32((int)lengthStream.Length);// .Write(0, lengthStream.Length);
+                stream.Flush();
             }
             return new RecordPosition
             {
                 Position = start + headerSize,
-                Length = bufferLength,
+                Length = lengthStream.Length,
                 LogFile = this.ActiveFile,
                 Generation = markGeneration
             };

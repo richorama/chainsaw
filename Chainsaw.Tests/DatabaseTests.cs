@@ -15,17 +15,8 @@ namespace Chainsaw.Tests
             using (var db = new Database("databasetest"))
             {
                 for (var i = 0; i < 100; i++)
-                {
-                    var key = new byte[i];
-                    var value = new byte[i];
-
-                    for (var j = 0; j < i; j++)
-                    {
-                        key[j] = (byte)j;
-                        value[j] = (byte)i;
-                    }
-                    
-                    db.Append(Operation.Append, key, 0, key.Length, value, 0, value.Length);
+                {   
+                    db.Append(Operation.Append, Guid.NewGuid().ToString(), Guid.NewGuid().ToString());
                 }
             }
         }
