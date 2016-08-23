@@ -11,8 +11,8 @@ using System.Threading.Tasks;
 /*
 [Ctrl] + [F5]
 300000 in 5128ms
-5619
-     
+300000 in 6365ms // with wire serialization, no buffer ring
+300000 in 5789ms // switch to a struct for record position
 */
 
 

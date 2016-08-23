@@ -8,7 +8,7 @@ using Wire;
 
 namespace Chainsaw
 {
-    public class RecordPosition
+    public struct RecordPosition
     {
         public long Position { get; set; }
         public long Length { get; set; }
@@ -51,7 +51,7 @@ namespace Chainsaw
                 }
                 this.ActiveFile = this.Files.FirstOrDefault(x => x.State == LogState.Active);
                 var last = this.ActiveFile.ReadPositions().LastOrDefault();
-                if (null != last)
+                if (last.Position != 0) //null check not possible
                 {
                     this.highWaterMark = last.Position + last.Length;
                 }
@@ -140,16 +140,10 @@ namespace Chainsaw
 
             var start = mark - length;
 
-            //using (var view = this.ActiveFile.File.CreateViewAccessor(start, length, MemoryMappedFileAccess.Write))
             using (var stream = this.ActiveFile.File.CreateViewStream(start, length))
             {
-                //var stream = new ViewAccessorStream(view, length);
-                stream.Position = headerSize;
+                stream.WriteInt32((int)lengthStream.Length);
                 serializer.Serialize(value, stream);
-
-                //view.WriteArray<byte>(headerSize, buffer, offset, bufferLength);
-                stream.Position = 0;
-                stream.WriteInt32((int)lengthStream.Length);// .Write(0, lengthStream.Length);
                 stream.Flush();
             }
             return new RecordPosition

@@ -26,8 +26,6 @@ namespace Chainsaw
     public class Database : IDisposable
     {
         Log log;
-        const int ENUM_SIZE = sizeof(Operation);
-        const int LENGTH_SIZE = sizeof(int);
 
         public Database(string directory, long logCapacity = 4 * 1024 * 1024)
         {
@@ -51,9 +49,6 @@ namespace Chainsaw
         {
             this.log.Dispose();
         }
-
-
-
 
     }
 
