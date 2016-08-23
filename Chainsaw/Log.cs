@@ -10,16 +10,17 @@ namespace Chainsaw
 {
     public struct RecordPosition
     {
+        public LogFile LogFile { get; set; }
+        public int Generation { get; set; }
+        public int Index { get; set; }
         public long Position { get; set; }
         public long Length { get; set; }
-        public int Generation { get; set; }
-        public LogFile LogFile { get; set; }
     }
 
     public class Log : IDisposable
     {
         long highWaterMark = 0;
-        int headerSize = sizeof(int);
+        int headerSize = sizeof(int) * 2;
         int generation = 0;
         public int Generation { get { return this.generation; } }
         public List<LogFile> Files { get; private set; }
@@ -29,6 +30,8 @@ namespace Chainsaw
         object sync = new object();
         public Action<LogFile, int> HandleFullLog { get; private set; }
         Serializer serializer = new Serializer();
+        int nextIndex;
+
 
         LogFile AddLogFile()
         {
@@ -50,10 +53,17 @@ namespace Chainsaw
                     this.Files.Add(LogFile.FromString(line, this.Directory));
                 }
                 this.ActiveFile = this.Files.FirstOrDefault(x => x.State == LogState.Active);
-                var last = this.ActiveFile.ReadPositions().LastOrDefault();
+                var highestIndex = 0;
+                RecordPosition last = new RecordPosition();
+                foreach (var position in this.ActiveFile.ReadPositions())
+                {
+                    highestIndex = Math.Max(position.Index, highestIndex);
+                    last = position;
+                }
                 if (last.Position != 0) //null check not possible
                 {
                     this.highWaterMark = last.Position + last.Length;
+                    this.nextIndex = highestIndex + 1;
                 }
             }
             else
@@ -116,6 +126,7 @@ namespace Chainsaw
         {
             if (null == value) throw new ArgumentNullException(nameof(value));
 
+            var index = Interlocked.Increment(ref nextIndex) - 1;
             var serializer = new Serializer();
             var lengthStream = new LengthStream();
             serializer.Serialize(value, lengthStream);
@@ -142,6 +153,7 @@ namespace Chainsaw
 
             using (var stream = this.ActiveFile.File.CreateViewStream(start, length))
             {
+                stream.WriteInt32(index);
                 stream.WriteInt32((int)lengthStream.Length);
                 serializer.Serialize(value, stream);
                 stream.Flush();
@@ -151,6 +163,7 @@ namespace Chainsaw
                 Position = start + headerSize,
                 Length = lengthStream.Length,
                 LogFile = this.ActiveFile,
+                Index = index,
                 Generation = markGeneration
             };
         }

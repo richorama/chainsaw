@@ -27,7 +27,8 @@ namespace Chainsaw
             this.Filename = filename;
             this.File = MemoryMappedFile.CreateFromFile(Path.Combine(directory, filename), FileMode.OpenOrCreate, filename, capacity);
         }
-        int headerSize = sizeof(int);
+        int headerSize = sizeof(int) * 2;
+        int intSize = sizeof(int);
         public LogState State { get; private set; }
         public MemoryMappedFile File { get; private set; }
         public long Capacity { get; private set; }
@@ -61,13 +62,15 @@ namespace Chainsaw
             {
                 while (position < this.Capacity)
                 {
-                    var length = view.ReadInt32(position);
+                    var index = view.ReadInt32(position);
+                    var length = view.ReadInt32(position + intSize);
                     if (length == 0) yield break;
 
                     yield return new RecordPosition
                     {
                         Position = position + headerSize,
-                        Length = length
+                        Length = length,
+                        Index = index
                     };
                     position += headerSize + length;
                 }

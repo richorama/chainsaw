@@ -20,7 +20,6 @@ namespace Chainsaw
         public string Key { get; set; }
         public T Value { get; set; }
         public DateTime Time { get; set; }
-        public string ETag {get;set;}
     }
 
     public class Database : IDisposable
@@ -32,17 +31,16 @@ namespace Chainsaw
             log = new Log(directory, logCapacity);
         }
 
-        public void Append<T>(Operation operation, string key, T value)
+        public RecordPosition Append<T>(Operation operation, string key, T value)
         {
             var record = new Record<T>
             {
                 Operation = operation,
                 Key = key,
                 Value = value,
-                ETag = Guid.NewGuid().ToString(),
                 Time = DateTime.UtcNow
             };
-            var position = log.Append(record);
+            return log.Append(record);
         }
 
         public void Dispose()
