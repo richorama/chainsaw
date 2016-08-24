@@ -46,8 +46,8 @@
   <ItemGroup>
     <Compile Include="Database.cs" />
     <Compile Include="LengthStream.cs" />
-    <Compile Include="Log.cs" />
-    <Compile Include="LogFile.cs" />
+    <Compile Include="LogWriter.cs" />
+    <Compile Include="LogReader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

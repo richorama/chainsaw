@@ -30,7 +30,7 @@ namespace Benchmark
             var batch = 300000 / parallelism;
 
 
-            using (var log = new Log("raw", 4 * 1024 * 1024))
+            using (var log = new LogWriter("raw", 4 * 1024 * 1024))
             {
                 var threads = new List<Thread>();
                 var buffer = new byte[] { 1, 2 };

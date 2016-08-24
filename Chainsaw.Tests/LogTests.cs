@@ -20,7 +20,7 @@ namespace Chainsaw.Tests
         [TestMethod]
         public void TestLogFileToString()
         {
-            using (var logFile = new LogFile(".", "file1.log", 100, LogState.Full))
+            using (var logFile = new LogReader(".", "file1.log", 100, LogState.Full))
             {
                 Assert.AreEqual("3,100,file1.log", logFile.ToString());
             }
@@ -29,7 +29,7 @@ namespace Chainsaw.Tests
         [TestMethod]
         public void TestLogFileFromString()
         {
-            using (var logFile = LogFile.FromString("3,100,file1.log", "."))
+            using (var logFile = LogReader.FromString("3,100,file1.log", "."))
             {
                 Assert.AreEqual(100, logFile.Capacity);
                 Assert.AreEqual(LogState.Full, logFile.State);
@@ -46,27 +46,34 @@ namespace Chainsaw.Tests
           
             if (Directory.Exists("test")) Directory.Delete("test", true);
 
-            using (var log = new Log("test", 4 * 1024))
+            using (var log = new LogWriter("test", 4 * 1024))
             {
                 for (var i = 0; i < 100; i++)
                 {
                     log.Append(new TestPoco { Value = i + 1 });
                 }
             }
-            using (var log2 = new Log("test", 4 * 1024))
+            using (var log2 = new LogWriter("test", 4 * 1024))
             {
                 var counter = 0;
                 foreach (var logFile in log2.Files)
                 {
                     foreach (var position in logFile.ReadPositions())
                     {
-                        var value2 = logFile.Read<TestPoco>(position);
+                        var value2 = logFile.Read<TestPoco>(position.Position, position.Length);
                         Assert.IsNotNull(value2);
                         Assert.AreNotEqual(0, value2.Value);
                         counter++;
                     }
                 }
                 Assert.AreEqual(100, counter);
+            }
+
+            using (var log3 = new LogWriter("test", 4 * 1024))
+            {
+                var result = log3.Read<TestPoco>(1);
+                Assert.IsNotNull(result);
+                Assert.AreEqual(2, result.Value);
             }
 
         }
@@ -76,19 +83,19 @@ namespace Chainsaw.Tests
         {
             if (Directory.Exists("reopen")) Directory.Delete("reopen", true);
 
-            using (var log = new Log("reopen", 4 * 1024))
+            using (var log = new LogWriter("reopen", 4 * 1024))
             {
                 var buffer = new byte[] { 1 };
                 log.Append(buffer);
             }
 
-            using (var log = new Log("reopen", 4 * 1024))
+            using (var log = new LogWriter("reopen", 4 * 1024))
             {
                 var buffer = new byte[] { 2 };
                 log.Append(buffer);
             }
 
-            using (var log = new Log("reopen", 4 * 1024))
+            using (var log = new LogWriter("reopen", 4 * 1024))
             {
                 Assert.AreEqual(2, log.ActiveFile.ReadPositions().Count());
             }
@@ -105,8 +112,8 @@ namespace Chainsaw.Tests
                 buffer[i] = (byte)i;
             }
             var generationCount = 0;
-            Action<LogFile, int> logFull = (_, __) => generationCount++;
-            using (var log = new Log("drain", 4 * 1024, logFull))
+            Action<LogReader, int> logFull = (_, __) => generationCount++;
+            using (var log = new LogWriter("drain", 4 * 1024, logFull))
             {
                 for (var i = 0; i < 10000; i++)
                 {
@@ -130,7 +137,7 @@ namespace Chainsaw.Tests
             var parallelism = 4;
             var batch = 20000;
 
-            using (var log = new Log("sat", 4 * 1024 * 1024))
+            using (var log = new LogWriter("sat", 4 * 1024 * 1024))
             {
                 var threads = new List<Thread>();
 
@@ -182,7 +189,7 @@ namespace Chainsaw.Tests
             var batch = 300000 / parallelism;
 
 
-            using (var log = new Log("raw", 4 * 1024 * 1024))
+            using (var log = new LogWriter("raw", 4 * 1024 * 1024))
             {
                 var threads = new List<Thread>();
                 var buffer = new byte[] { 1, 2 };

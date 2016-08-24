@@ -24,11 +24,11 @@ namespace Chainsaw
 
     public class Database : IDisposable
     {
-        Log log;
+        LogWriter log;
 
         public Database(string directory, long logCapacity = 4 * 1024 * 1024)
         {
-            log = new Log(directory, logCapacity);
+            log = new LogWriter(directory, logCapacity);
         }
 
         public RecordPosition Append<T>(Operation operation, string key, T value)
@@ -42,6 +42,7 @@ namespace Chainsaw
             };
             return log.Append(record);
         }
+
 
         public void Dispose()
         {

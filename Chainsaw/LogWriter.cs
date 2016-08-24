@@ -10,37 +10,39 @@ namespace Chainsaw
 {
     public struct RecordPosition
     {
-        public LogFile LogFile { get; set; }
+        public LogReader LogFile { get; set; }
         public int Generation { get; set; }
         public int Index { get; set; }
         public long Position { get; set; }
         public long Length { get; set; }
     }
 
-    public class Log : IDisposable
+    public class LogWriter : IDisposable
     {
         long highWaterMark = 0;
         int headerSize = sizeof(int) * 2;
         int generation = 0;
         public int Generation { get { return this.generation; } }
-        public List<LogFile> Files { get; private set; }
-        public LogFile ActiveFile { get; private set; }
+        public List<LogReader> Files { get; private set; }
+        public LogReader ActiveFile { get; private set; }
         public long Capacity { get; private set; }
         public string Directory { get; private set; }
         object sync = new object();
-        public Action<LogFile, int> HandleFullLog { get; private set; }
+        public Action<LogReader, int> HandleFullLog { get; private set; }
         Serializer serializer = new Serializer();
         int nextIndex;
+        int firstIndex;
 
-
-        LogFile AddLogFile()
+        LogReader AddLogFile()
         {
             var thisLogFilename = $"log.{Guid.NewGuid().ToString()}.log";
-            var logFile = new LogFile(this.Directory, thisLogFilename, this.Capacity, LogState.Dirty);
+            var logFile = new LogReader(this.Directory, thisLogFilename, this.Capacity, LogState.Dirty);
             logFile.Clean();
             this.Files.Add(logFile);
             return logFile;
         }
+
+        IDictionary<int, Tuple<long, long>> cache = new Dictionary<int, Tuple<long, long>>();
 
         void OpenManifest()
         {
@@ -50,20 +52,24 @@ namespace Chainsaw
             {
                 foreach (var line in File.ReadLines(Path.Combine(this.Directory, ".manifest")).Where(x => !string.IsNullOrWhiteSpace(x)))
                 {
-                    this.Files.Add(LogFile.FromString(line, this.Directory));
+                    this.Files.Add(LogReader.FromString(line, this.Directory));
                 }
                 this.ActiveFile = this.Files.FirstOrDefault(x => x.State == LogState.Active);
                 var highestIndex = 0;
+                lowestIndex = int.MaxValue;
                 RecordPosition last = new RecordPosition();
                 foreach (var position in this.ActiveFile.ReadPositions())
                 {
                     highestIndex = Math.Max(position.Index, highestIndex);
+                    lowestIndex = Math.Min(position.Index, lowestIndex);
                     last = position;
+                    cache.Add(position.Index, new Tuple<long, long>(position.Position, position.Length));
                 }
-                if (last.Position != 0) //null check not possible
+                if (cache.Count > 0)
                 {
                     this.highWaterMark = last.Position + last.Length;
                     this.nextIndex = highestIndex + 1;
+                    this.firstIndex = lowestIndex;
                 }
             }
             else
@@ -77,6 +83,8 @@ namespace Chainsaw
         }
 
         object manifestSync = new object();
+        private int lowestIndex;
+
         void SaveManifest()
         {
             lock(manifestSync)
@@ -85,9 +93,9 @@ namespace Chainsaw
             }
         }
 
-        public Log(string directory, long capacity, Action<LogFile, int> handleFullLog = null)
+        public LogWriter(string directory, long capacity, Action<LogReader, int> handleFullLog = null)
         {
-            this.Files = new List<LogFile>();
+            this.Files = new List<LogReader>();
             this.Capacity = capacity;
             this.Directory = directory;
             this.HandleFullLog = handleFullLog;
@@ -98,6 +106,8 @@ namespace Chainsaw
         void RotateLogs()
         {
             this.ActiveFile.GoFull();
+            cache.Clear();
+            firstIndex = nextIndex + 1;
             var lastActive = this.ActiveFile;
             
             this.ActiveFile = null;
@@ -158,6 +168,7 @@ namespace Chainsaw
                 serializer.Serialize(value, stream);
                 stream.Flush();
             }
+            cache.Add(index, new Tuple<long, long>(start + headerSize, lengthStream.Length));
             return new RecordPosition
             {
                 Position = start + headerSize,
@@ -166,6 +177,31 @@ namespace Chainsaw
                 Index = index,
                 Generation = markGeneration
             };
+        }
+
+
+        public T Read<T>(int index)
+        {
+            // first check to see if it's in the active log
+
+            if (index >= firstIndex)
+            {
+                Tuple<long, long> item;
+                if (cache.TryGetValue(index, out item))
+                {
+                    return this.ActiveFile.Read<T>(item.Item1, item.Item2);
+                }
+            }
+
+            foreach (var file in this.Files.Where(x => x.State == LogState.Full))
+            {
+                if (file.IsIndexInLog(index))
+                {
+                    return file.Read<T>(index);
+                }
+            }
+
+            throw new KeyNotFoundException();
         }
 
         public void Dispose()

@@ -19,6 +19,7 @@ namespace Chainsaw.Tests
                     db.Append(Operation.Append, Guid.NewGuid().ToString(), Guid.NewGuid().ToString());
                 }
             }
+
         }
     }
 }
