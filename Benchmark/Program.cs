@@ -13,6 +13,9 @@ using System.Threading.Tasks;
 300000 in 5128ms
 300000 in 6365ms // with wire serialization, no buffer ring
 300000 in 5789ms // switch to a struct for record position
+300000 in 9335ms // with guids
+300000 in 8852ms // optimise guid generation
+300000 in 6168ms // remove dodgy extra new serializer()
 */
 
 

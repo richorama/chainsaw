@@ -17,7 +17,6 @@ namespace Chainsaw
         Full
     }
 
-
     public class LogReader : IDisposable
     {
         public LogReader(string directory, string filename, long capacity, LogState initialState)
@@ -26,61 +25,16 @@ namespace Chainsaw
             this.Capacity = capacity;
             this.Filename = filename;
             this.File = MemoryMappedFile.CreateFromFile(Path.Combine(directory, filename), FileMode.OpenOrCreate, filename, capacity);
-            if (this.State == LogState.Full)
-            {
-                // the log is full, so figure out the index range
-                BuildIndex();
-            }
-        }
-
-        private void BuildIndex()
-        {
-            highestIndex = 0;
-            lowestIndex = int.MaxValue;
-            var hasData = false;
-            foreach (var position in this.ReadPositions())
-            {
-                highestIndex = Math.Max(highestIndex, position.Index);
-                lowestIndex = Math.Min(lowestIndex, position.Index);
-                hasData = true;
-            }
-            if (!hasData) return;
-            positionCache = new Tuple<long, long>[highestIndex - lowestIndex + 1];
-            foreach (var position in this.ReadPositions())
-            {
-                positionCache[position.Index - lowestIndex] = new Tuple<long, long>(position.Position, position.Length);
-            }
-        }
-
-        public bool IsIndexInLog(int index)
-        {
-            return index >= lowestIndex && index <= highestIndex;
-        }
-
-        public T Read<T>(int index)
-        {
-            var arrayPosition = index - lowestIndex;
-            var tuple = positionCache[arrayPosition];
-            return Read<T>(tuple.Item1, tuple.Item2);
-        }
-
-        public object Read(int index)
-        {
-            var arrayPosition = index - lowestIndex;
-            var tuple = positionCache[arrayPosition];
-            return Read(tuple.Item1, tuple.Item2);
         }
 
         Tuple<long, long>[] positionCache;
-        int headerSize = sizeof(int) * 2;
+        int headerSize = sizeof(int);
         int intSize = sizeof(int);
         public LogState State { get; private set; }
         public MemoryMappedFile File { get; private set; }
         public long Capacity { get; private set; }
         public string Filename { get; private set; }
         Serializer serializer = new Serializer();
-        int lowestIndex;
-        int highestIndex;
 
         public void Clean()
         {
@@ -103,23 +57,21 @@ namespace Chainsaw
             }
         }
 
-        public IEnumerable<RecordPosition> ReadPositions(long start = 0)
+        public IEnumerable<RecordPosition> ReadPositions(int generation)
         {
-            var position = start;
             using (var view = this.File.CreateViewAccessor())
             {
+                var position = 0;
                 while (position < this.Capacity)
                 {
-                    var index = view.ReadInt32(position);
-                    var length = view.ReadInt32(position + intSize);
+                    var length = view.ReadInt32(position);
                     if (length == 0) yield break;
 
                     yield return new RecordPosition
                     {
                         Position = position + headerSize,
                         Length = length,
-                        Index = index,
-                        LogFile = this
+                        Generation = generation
                     };
                     position += headerSize + length;
                 }
@@ -152,7 +104,6 @@ namespace Chainsaw
         {
             if (this.State != LogState.Active) throw new ApplicationException("logs must be active before they can be full");
             this.State = LogState.Full;
-            this.BuildIndex();
         }
 
         public void Dispose()

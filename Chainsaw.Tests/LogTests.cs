@@ -50,7 +50,10 @@ namespace Chainsaw.Tests
             {
                 for (var i = 0; i < 100; i++)
                 {
-                    log.Append(new TestPoco { Value = i + 1 });
+                    var poco = new TestPoco { Value = i + 1 };
+                    var guid = log.Append(poco);
+                    var poco2 = log.Read<TestPoco>(guid);
+                    Assert.AreEqual(poco.Value, poco2.Value);
                 }
             }
             using (var log2 = new LogWriter("test", 4 * 1024))
@@ -58,7 +61,7 @@ namespace Chainsaw.Tests
                 var counter = 0;
                 foreach (var logFile in log2.Files)
                 {
-                    foreach (var position in logFile.ReadPositions())
+                    foreach (var position in logFile.ReadPositions(0))
                     {
                         var value2 = logFile.Read<TestPoco>(position.Position, position.Length);
                         Assert.IsNotNull(value2);
@@ -69,12 +72,7 @@ namespace Chainsaw.Tests
                 Assert.AreEqual(100, counter);
             }
 
-            using (var log3 = new LogWriter("test", 4 * 1024))
-            {
-                var result = log3.Read<TestPoco>(1);
-                Assert.IsNotNull(result);
-                Assert.AreEqual(2, result.Value);
-            }
+            
 
         }
 
@@ -97,35 +95,9 @@ namespace Chainsaw.Tests
 
             using (var log = new LogWriter("reopen", 4 * 1024))
             {
-                Assert.AreEqual(2, log.ActiveFile.ReadPositions().Count());
+                Assert.AreEqual(2, log.ActiveFile.ReadPositions(0).Count());
             }
-
         }
-
-        [TestMethod]
-        public void TestLogDraining()
-        {
-            if (Directory.Exists("drain")) Directory.Delete("drain", true);
-            var buffer = new byte[100];
-            for (var i = 0; i < buffer.Length; i++)
-            {
-                buffer[i] = (byte)i;
-            }
-            var generationCount = 0;
-            Action<LogReader, int> logFull = (_, __) => generationCount++;
-            using (var log = new LogWriter("drain", 4 * 1024, logFull))
-            {
-                for (var i = 0; i < 10000; i++)
-                {
-                    log.Append(buffer);
-                }
-                Assert.AreEqual(2, log.Files.Count);
-                Assert.AreEqual(generationCount, log.Generation);
-            }
-            Assert.AreNotEqual(0, generationCount);
-            Assert.AreNotEqual(2, generationCount);
-        }
-
 
         [TestMethod]
         public void TestSaturation()

@@ -31,7 +31,7 @@ namespace Chainsaw
             log = new LogWriter(directory, logCapacity);
         }
 
-        public RecordPosition Append<T>(Operation operation, string key, T value)
+        public Guid Append<T>(Operation operation, string key, T value)
         {
             var record = new Record<T>
             {
