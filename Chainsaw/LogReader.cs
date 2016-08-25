@@ -28,13 +28,12 @@ namespace Chainsaw
         }
 
         Tuple<long, long>[] positionCache;
-        int headerSize = sizeof(int);
-        int intSize = sizeof(int);
+        const int headerSize = sizeof(int);
         public LogState State { get; private set; }
-        public MemoryMappedFile File { get; private set; }
-        public long Capacity { get; private set; }
-        public string Filename { get; private set; }
-        Serializer serializer = new Serializer();
+        public MemoryMappedFile File { get; }
+        public long Capacity { get;  }
+        public string Filename { get; }
+        readonly Serializer serializer = new Serializer();
 
         public void Clean()
         {
@@ -45,7 +44,7 @@ namespace Chainsaw
 
                 using (var view = this.File.CreateViewAccessor())
                 {
-                    byte value = 0;
+                    const byte value = 0;
                     for (var i = 0; i < this.Capacity; i++)
                     {
                         view.Write(i, value);
@@ -57,7 +56,7 @@ namespace Chainsaw
             }
         }
 
-        public IEnumerable<RecordPosition> ReadPositions(int generation)
+        public IEnumerable<Guid> ReadPositions(int generation)
         {
             using (var view = this.File.CreateViewAccessor())
             {
@@ -67,18 +66,30 @@ namespace Chainsaw
                     var length = view.ReadInt32(position);
                     if (length == 0) yield break;
 
-                    yield return new RecordPosition
-                    {
-                        Position = position + headerSize,
-                        Length = length,
-                        Generation = generation
-                    };
+                    yield return LogWriter.GenerateGuid(generation, position + headerSize, length);
                     position += headerSize + length;
                 }
             }
         }
 
-        public object Read(long position, long length)
+	    public int GetNextPosition()
+	    {
+		    using (var view = this.File.CreateViewAccessor())
+			{
+				var position = 0;
+				while (position < this.Capacity)
+				{
+					var length = view.ReadInt32(position);
+					if (length == 0) return position;
+
+					position += headerSize + length;
+				}
+				return position;
+			}
+
+	    }
+
+	    public object Read(long position, long length)
         {
             using (var stream = this.File.CreateViewStream(position, length))
             {
@@ -108,10 +119,10 @@ namespace Chainsaw
 
         public void Dispose()
         {
-            if (this.File != null) this.File.Dispose();
+	        this.File?.Dispose();
         }
 
-        public override string ToString()
+	    public override string ToString()
         {
             return $"{(int)this.State},{this.Capacity},{this.Filename}";
         }

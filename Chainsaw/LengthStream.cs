@@ -18,22 +18,10 @@ namespace Chainsaw
 
         public override long Length => this.length;
 
-        long position;
+	    public override long Position { get; set; }
 
-        public override long Position
-        {
-            get
-            {
-                return this.position;
-            }
-            set
-            {
-                this.position = value;
-            }
-        }
-        
 
-        public override void Flush()
+	    public override void Flush()
         {
             
         }

@@ -18,15 +18,16 @@ namespace Chainsaw
     public class LogWriter : IDisposable
     {
         long highWaterMark = 0;
-        int headerSize = sizeof(int);
+        const int headerSize = sizeof(int);
         int generation = 0;
-        public int Generation { get { return this.generation; } }
-        public List<LogReader> Files { get; private set; }
+        public int Generation => this.generation;
+        public List<LogReader> Files { get; }
         public LogReader ActiveFile { get; private set; }
-        public long Capacity { get; private set; }
-        public string Directory { get; private set; }
-        object sync = new object();
-        Serializer serializer = new Serializer();
+        public long Capacity { get; }
+        public string Directory { get; }
+        readonly object sync = new object();
+	    readonly object manifestSync = new object();
+        readonly Serializer serializer = new Serializer();
 
         LogReader AddLogFile(int generation)
         {
@@ -49,8 +50,7 @@ namespace Chainsaw
                     generation++;
                 }
                 this.ActiveFile = this.Files.FirstOrDefault(x => x.State == LogState.Active);
-                var last = this.ActiveFile.ReadPositions(generation).LastOrDefault();
-                this.highWaterMark = last.Position + last.Length;
+	            this.highWaterMark = this.ActiveFile.GetNextPosition();
             }
             else
             {
@@ -62,7 +62,6 @@ namespace Chainsaw
             }
         }
 
-        object manifestSync = new object();
 
         void SaveManifest()
         {
@@ -89,14 +88,13 @@ namespace Chainsaw
             this.ActiveFile = null;
             var nextGen = Interlocked.Increment(ref generation);
 
-            var nextLog = this.Files.FirstOrDefault(x => x.State == LogState.Clean);
-            if (null == nextLog)
-            {
-                nextLog = AddLogFile(nextGen);
-            }
-            nextLog.GoActive();
-            this.ActiveFile = nextLog;
+            var nextLog = this.Files.FirstOrDefault(x => x.State == LogState.Clean) ?? AddLogFile(nextGen);
+
+	        nextLog.GoActive();
+
+	        this.ActiveFile = nextLog;
             SaveManifest();
+	        // TODO: consider creating the next clean log file in the background
         }
 
         public Guid Append(object value)
@@ -165,11 +163,23 @@ namespace Chainsaw
             return log.Read<T>(position.Position, position.Length);
         }
 
-        public void Dispose()
+	    public IEnumerable<Guid> ReadAllKeys()
+	    {
+		    var generation = 0;
+		    foreach (var file in this.Files.Where(x => x.State == LogState.Active || x.State == LogState.Full))
+		    {
+			    foreach (var record in file.ReadPositions(generation))
+			    {
+				    yield return record;
+			    }
+		    }
+	    }
+
+	    public void Dispose()
         {
             foreach (var file in this.Files)
             {
-                if (file != null) file.Dispose();
+	            file?.Dispose();
             }
         }
     }

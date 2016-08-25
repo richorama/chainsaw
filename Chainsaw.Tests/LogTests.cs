@@ -63,7 +63,8 @@ namespace Chainsaw.Tests
                 {
                     foreach (var position in logFile.ReadPositions(0))
                     {
-                        var value2 = logFile.Read<TestPoco>(position.Position, position.Length);
+	                    var record = position.ParseRecord();
+                        var value2 = logFile.Read<TestPoco>(record.Position, record.Length);
                         Assert.IsNotNull(value2);
                         Assert.AreNotEqual(0, value2.Value);
                         counter++;
@@ -72,7 +73,10 @@ namespace Chainsaw.Tests
                 Assert.AreEqual(100, counter);
             }
 
-            
+            using (var log = new LogWriter("test", 4 * 1024))
+			{
+				Assert.AreEqual(100, log.ReadAllKeys().Count());
+			}
 
         }
 
@@ -93,10 +97,8 @@ namespace Chainsaw.Tests
                 log.Append(buffer);
             }
 
-            using (var log = new LogWriter("reopen", 4 * 1024))
-            {
-                Assert.AreEqual(2, log.ActiveFile.ReadPositions(0).Count());
-            }
+
+
         }
 
         [TestMethod]
