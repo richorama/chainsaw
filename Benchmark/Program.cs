@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 300000 in 9335ms // with guids
 300000 in 8852ms // optimise guid generation
 300000 in 6168ms // remove dodgy extra new serializer()
+300000 in 6261ms // upgraded wire to 0.8
 */
 
 

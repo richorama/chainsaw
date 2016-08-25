@@ -125,7 +125,10 @@ namespace Chainsaw
 
             using (var stream = this.ActiveFile.File.CreateViewStream(mark - length, length))
             {
-                stream.WriteInt32((int)lengthStream.Length);
+                stream.WriteByte((byte)lengthStream.Length);
+                stream.WriteByte((byte)(lengthStream.Length >> 8));
+                stream.WriteByte((byte)(lengthStream.Length >> 16));
+                stream.WriteByte((byte)(lengthStream.Length >> 24));
                 serializer.Serialize(value, stream);
                 stream.Flush();
             }
@@ -172,8 +175,11 @@ namespace Chainsaw
 			    {
 				    yield return record;
 			    }
+                generation++;
 		    }
 	    }
+
+
 
 	    public void Dispose()
         {
