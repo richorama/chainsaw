@@ -26,7 +26,6 @@ namespace Chainsaw
         public long Capacity { get; }
         public string Directory { get; }
         readonly object sync = new object();
-	    readonly object manifestSync = new object();
         readonly Serializer serializer = new Serializer();
 
         LogReader AddLogFile(int generation)
@@ -64,10 +63,7 @@ namespace Chainsaw
 
         void SaveManifest()
         {
-            lock(manifestSync)
-            {
-                File.WriteAllText(Path.Combine(this.Directory, ".manifest"), string.Join("\r\n", this.Files.Select(x => x.ToString())));
-            }
+            File.WriteAllText(Path.Combine(this.Directory, ".manifest"), string.Join("\r\n", this.Files.Select(x => x.ToString())));
         }
 
         public LogWriter(string directory, long capacity)
