@@ -53,9 +53,11 @@ namespace Chainsaw.Tests
                     var poco = new TestPoco { Value = i + 1 };
                     var guid = log.Append(poco);
                     var poco2 = log.Read<TestPoco>(guid);
+
                     Assert.AreEqual(poco.Value, poco2.Value);
                 }
             }
+
             using (var log2 = new LogWriter("test", 4 * 1024))
             {
                 var counter = 0;

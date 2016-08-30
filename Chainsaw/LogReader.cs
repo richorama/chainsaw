@@ -27,7 +27,6 @@ namespace Chainsaw
             this.File = MemoryMappedFile.CreateFromFile(Path.Combine(directory, filename), FileMode.OpenOrCreate, filename, capacity, MemoryMappedFileAccess.ReadWrite);
         }
 
-        Tuple<long, long>[] positionCache;
         const int headerSize = sizeof(int);
         public LogState State { get; private set; }
         public MemoryMappedFile File { get; }
@@ -37,27 +36,9 @@ namespace Chainsaw
 
         public void Clean()
         {
-            lock (this.File)
-            {
-                if (this.State == LogState.Clean) return;
-                if (this.State == LogState.Active) throw new ApplicationException("you cannot clean the active file");
-
-                /*
-                using (var view = this.File.CreateViewAccessor())
-                {
-                    const byte value = 0;
-                    for (var i = 0; i < this.Capacity; i++)
-                    {
-                        var x = view.ReadByte(i);
-                        if (x != 0) throw new ApplicationException("not zero");
-                        view.Write(i, value);
-                    }
-                    view.Flush();
-                }
-                */
-
-                this.State = LogState.Clean;
-            }
+            if (this.State == LogState.Clean) return;
+            if (this.State == LogState.Active) throw new ApplicationException("you cannot clean the active file");
+            this.State = LogState.Clean;
         }
 
         public IEnumerable<Guid> ReadPositions(int generation)

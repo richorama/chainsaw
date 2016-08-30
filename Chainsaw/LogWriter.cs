@@ -32,8 +32,7 @@ namespace Chainsaw
         LogReader AddLogFile(int generation)
         {
             var thisLogFilename = $"log.{generation}.log";
-            var logFile = new LogReader(this.Directory, thisLogFilename, this.Capacity, LogState.Dirty);
-            logFile.Clean();
+            var logFile = new LogReader(this.Directory, thisLogFilename, this.Capacity, LogState.Clean);
             this.Files.Add(logFile);
             return logFile;
         }
