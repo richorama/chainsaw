@@ -168,14 +168,14 @@ namespace Chainsaw
 
 	    public IEnumerable<Guid> ReadAllKeys()
 	    {
-		    var generation = 0;
+		    var gen = 0;
 		    foreach (var file in this.Files.Where(x => x.State == LogState.Active || x.State == LogState.Full))
 		    {
-			    foreach (var record in file.ReadPositions(generation))
+			    foreach (var record in file.ReadPositions(gen))
 			    {
 				    yield return record;
 			    }
-                generation++;
+                gen++;
 		    }
 	    }
 
