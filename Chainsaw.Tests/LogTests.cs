@@ -22,23 +22,20 @@ namespace Chainsaw.Tests
         {
             using (var logFile = new LogReader(".", "file1.log", 100, LogState.Full))
             {
-                Assert.AreEqual("3,100,file1.log", logFile.ToString());
+                Assert.AreEqual("2,100,file1.log", logFile.ToString());
             }
         }
 
         [TestMethod]
         public void TestLogFileFromString()
         {
-            using (var logFile = LogReader.FromString("3,100,file1.log", "."))
+            using (var logFile = LogReader.FromString("2,100,file1.log", "."))
             {
                 Assert.AreEqual(100, logFile.Capacity);
                 Assert.AreEqual(LogState.Full, logFile.State);
                 Assert.AreEqual("file1.log", logFile.Filename);
             }
         }
-
-
-
 
         [TestMethod]
         public void TestBasicCrud()
@@ -79,6 +76,13 @@ namespace Chainsaw.Tests
 			{
 				Assert.AreEqual(100, log.ReadAllKeys().Count());
 			}
+
+            using (var log = new LogWriter("test", 4 * 1024))
+            {
+
+                var key = log.ReadAllKeys().Skip(50).First();
+                Assert.AreEqual(50, log.ReadAllKeys(key).Count());
+            }
 
         }
 

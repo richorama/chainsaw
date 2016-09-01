@@ -174,6 +174,24 @@ namespace Chainsaw
 		    }
 	    }
 
+        public IEnumerable<Guid> ReadAllKeys(Guid startingFrom)
+        {
+            var startingRecord = startingFrom.ParseRecord();
+            var startingFile = this.Files[startingRecord.Generation];
+            foreach (var record in startingFile.ReadPositions(startingRecord.Generation, (int)startingRecord.Position - headerSize))
+            {
+                yield return record;
+            }
+            for (var gen = startingRecord.Generation + 1; gen < this.Files.Count; gen++)
+            {
+                var file = this.Files[gen];
+                if (file.State == LogState.Clean) continue;
+                foreach (var record in file.ReadPositions(gen))
+                {
+                    yield return record;
+                }
+            }
+        }
 
 
 	    public void Dispose()

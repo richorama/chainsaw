@@ -11,7 +11,6 @@ namespace Chainsaw
 {
     public enum LogState
     {
-        Dirty,
         Clean,
         Active,
         Full
@@ -41,11 +40,11 @@ namespace Chainsaw
             this.State = LogState.Clean;
         }
 
-        public IEnumerable<Guid> ReadPositions(int generation)
+        public IEnumerable<Guid> ReadPositions(int generation, int startingPoint = 0)
         {
             using (var view = this.File.CreateViewAccessor())
             {
-                var position = 0;
+                var position = startingPoint;
                 while (position < this.Capacity)
                 {
                     var length = view.ReadInt32(position);
@@ -57,7 +56,11 @@ namespace Chainsaw
             }
         }
 
-	    public int GetNextPosition()
+
+
+
+
+        public int GetNextPosition()
 	    {
 		    using (var view = this.File.CreateViewAccessor())
 			{
@@ -92,7 +95,7 @@ namespace Chainsaw
 
         public void GoActive()
         {
-            if (this.State == LogState.Dirty) throw new ApplicationException("the log is not clean");
+            if (this.State != LogState.Clean) throw new ApplicationException("the log is not clean");
             this.State = LogState.Active;
         }
 
