@@ -14,16 +14,20 @@ namespace Chainsaw.Tests
             if (Directory.Exists("databasetest")) Directory.Delete("databasetest", true);
 
 
-            using (var db = new Database("databasetest"))
+            using (var db = new Database<string>("databasetest"))
             {
                 for (var i = 0; i < 100; i++)
                 {   
-                    db.Append(Operation.Append, Guid.NewGuid().ToString(), Guid.NewGuid().ToString());
+                    db.Append(Operation.Append, "key" + i.ToString(), "value" + i.ToString());
                 }
 
-             
+                Assert.AreEqual("value57", db.Read("key57"));
             }
 
+            using (var db = new Database<string>("databasetest"))
+            {
+                Assert.AreEqual("value57", db.Read("key57"));
+            }
         }
     }
 }
