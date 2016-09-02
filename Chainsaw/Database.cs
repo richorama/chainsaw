@@ -21,6 +21,7 @@ namespace Chainsaw
         public string Key { get; set; }
         public T Value { get; set; }
         public DateTime Time { get; set; }
+        public Guid Position { get; set; }
     }
 
     public class Database<T> : IDisposable
@@ -70,6 +71,27 @@ namespace Chainsaw
                 return value.Value;
             }
             return default(T);
+        }
+
+
+        public IEnumerable<Record<T>> Scan()
+        {
+            foreach (var key in this.log.ReadAllKeys())
+            {
+                var value = this.log.Read<Record<T>>(key);
+                value.Position = key;
+                yield return value;
+            }
+        }
+
+        public IEnumerable<Record<T>> Scan(Guid from)
+        {
+            foreach (var key in this.log.ReadAllKeys(from).Skip(1))
+            {
+                var value = this.log.Read<Record<T>>(key);
+                value.Position = key;
+                yield return value;
+            }
         }
 
 

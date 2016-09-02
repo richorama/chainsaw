@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Chainsaw.Tests
 {
@@ -27,6 +28,11 @@ namespace Chainsaw.Tests
             using (var db = new Database<string>("databasetest"))
             {
                 Assert.AreEqual("value57", db.Read("key57"));
+            }
+
+            using (var db = new Database<string>("databasetest"))
+            {
+                Assert.AreEqual(100, db.Scan().Count());
             }
         }
     }
