@@ -209,5 +209,37 @@ namespace Chainsaw.Tests
             }
         }
 
+
+
+        [TestMethod]
+        public void TestBatch()
+        {
+
+            if (Directory.Exists("test")) Directory.Delete("test", true);
+
+            using (var log = new LogWriter("test", 4 * 1024))
+            {
+                var pocos = new List<TestPoco>();
+                for (var i = 0; i < 10; i++)
+                {
+                    pocos.Add(new TestPoco { Value = i + 1 });
+
+                }
+
+                var guids = log.Batch(pocos.ToArray());
+
+                Assert.AreEqual(10, guids.Length);
+                foreach (var guid in guids)
+                {
+                    var value = log.Read<TestPoco>(guid);
+                    Assert.AreNotEqual(0, value.Value);
+                }
+
+            }
+
+
+        }
+
+
     }
 }

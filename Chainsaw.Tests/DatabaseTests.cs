@@ -19,7 +19,7 @@ namespace Chainsaw.Tests
             {
                 for (var i = 0; i < 100; i++)
                 {   
-                    db.Append(Operation.Append, "key" + i.ToString(), "value" + i.ToString());
+                    db.Append("key" + i.ToString(), "value" + i.ToString());
                 }
 
                 Assert.AreEqual("value57", db.Read("key57"));
@@ -34,6 +34,16 @@ namespace Chainsaw.Tests
             {
                 Assert.AreEqual(100, db.Scan().Count());
             }
+
+            using (var db = new Database<string>("databasetest"))
+            {
+                db.Delete("key12");
+                Assert.AreEqual(101, db.Scan().Count());
+                var value = db.Read("key12");
+                Assert.AreEqual(null, value);
+            }
+
+
         }
     }
 }

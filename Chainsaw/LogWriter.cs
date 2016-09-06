@@ -49,6 +49,7 @@ namespace Chainsaw
                 }
                 this.ActiveFile = this.Files.FirstOrDefault(x => x.State == LogState.Active);
 	            this.highWaterMark = this.ActiveFile.GetNextPosition();
+                generation = this.Files.IndexOf(this.ActiveFile);
             }
             else
             {
@@ -130,6 +131,72 @@ namespace Chainsaw
           
             return GenerateGuid(markGeneration, mark - length + headerSize, lengthStream.Length);
         }
+
+        public Guid[] Batch(object[] values)
+        {
+            if (null == values) throw new ArgumentNullException(nameof(values));
+
+            var guidList = new List<Guid>(values.Length);
+
+            var lengthStream = new LengthStream();
+            foreach (var value in values) serializer.Serialize(value, lengthStream);
+
+            var length = lengthStream.Length + (headerSize * values.Length);
+            var mark = Interlocked.Add(ref highWaterMark, length);
+            var markGeneration = this.generation;
+            if (mark > this.Capacity)
+            {
+                // rotate the logs
+                lock (sync)
+                {
+                    if (mark >= this.Capacity && this.generation == markGeneration)
+                    {
+                        RotateLogs();
+                        Interlocked.Exchange(ref highWaterMark, 0);
+                    }
+                    mark = Interlocked.Add(ref highWaterMark, length);
+                    markGeneration = this.generation;
+                }
+            }
+
+
+            using (var stream = this.ActiveFile.File.CreateViewStream(mark - length, length))
+            {
+                foreach (var value in values)
+                {
+                    // record the header position
+                    var headerPosition = stream.Position;
+
+                    // skip the header
+                    stream.Position += headerSize;
+
+                    // serialize the body
+                    serializer.Serialize(value, stream);
+
+                    // record the final position
+                    var finalPosition = stream.Position;
+
+                    // skip back to the header
+                    stream.Position = headerPosition;
+
+                    var recordLength = finalPosition - (headerPosition + headerSize);
+
+                    // write the header
+                    stream.WriteByte((byte)recordLength);
+                    stream.WriteByte((byte)(recordLength >> 8));
+                    stream.WriteByte((byte)(recordLength >> 16));
+                    stream.WriteByte((byte)(recordLength >> 24));
+
+                    // skip to the end
+                    stream.Position = finalPosition;
+
+                    guidList.Add(GenerateGuid(markGeneration, headerPosition + headerSize, recordLength));
+                }
+                stream.Flush();
+            }
+            return guidList.ToArray();
+        }
+
 
         public static Guid GenerateGuid(long generation, long position, long length)
         {

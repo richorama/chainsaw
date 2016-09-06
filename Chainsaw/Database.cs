@@ -20,9 +20,9 @@ namespace Chainsaw
         public Operation Operation { get; set; }
         public string Key { get; set; }
         public T Value { get; set; }
-        public DateTime Time { get; set; }
-        public Guid Position { get; set; }
     }
+
+   
 
     public class Database<T> : IDisposable
     {
@@ -48,18 +48,44 @@ namespace Chainsaw
             }
         }
 
-        public Guid Append(Operation operation, string key, T value)
+        
+
+        public Guid Append(string key, T value)
         {
             var record = new Record<T>
             {
-                Operation = operation,
+                Operation = Operation.Append,
                 Key = key,
-                Value = value,
-                Time = DateTime.UtcNow
+                Value = value
             };
             var guid = log.Append(record);
             index.AddOrUpdate(key, guid, (_, __) => guid);
             return guid;
+        }
+
+        public Guid Delete(string key)
+        {
+            var record = new Record<T>
+            {
+                Operation = Operation.Delete,
+                Key = key,
+                Value = default(T)
+            };
+            var guid = log.Append(record);
+            index.AddOrUpdate(key, guid, (_, __) => guid);
+            return guid;
+        }
+
+        public Guid[] Batch(Record<T>[] records)
+        {
+            var guids = log.Batch(records as object[]);
+            var i = 0;
+            foreach (var guid in guids)
+            {
+                var record = records[i++];
+                index.AddOrUpdate(record.Key, guid, (_, __) => guid);
+            }
+            return guids;
         }
 
         public T Read(string key)
@@ -79,7 +105,6 @@ namespace Chainsaw
             foreach (var key in this.log.ReadAllKeys())
             {
                 var value = this.log.Read<Record<T>>(key);
-                value.Position = key;
                 yield return value;
             }
         }
@@ -89,7 +114,6 @@ namespace Chainsaw
             foreach (var key in this.log.ReadAllKeys(from).Skip(1))
             {
                 var value = this.log.Read<Record<T>>(key);
-                value.Position = key;
                 yield return value;
             }
         }
