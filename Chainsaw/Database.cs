@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Collections.Concurrent;
+using Wire;
+using System.IO;
 
 namespace Chainsaw
 {
@@ -22,33 +24,68 @@ namespace Chainsaw
         public T Value { get; set; }
     }
 
+    
+
+    public class IndexSnapshot
+    {
+        public KeyValuePair<string,Guid>[] Index { get; set; }
+    }
    
 
     public class Database<T> : IDisposable
     {
         LogWriter log;
         readonly ConcurrentDictionary<string, Guid> index = new ConcurrentDictionary<string, Guid>();
+        Serializer serializer = new Serializer();
 
         public Database(string directory, long logCapacity = 4 * 1024 * 1024)
         {
             log = new LogWriter(directory, logCapacity);
-            Guid _;
-            foreach (var guid in log.ReadAllKeys())
+
+            LoadTheIndex();
+        }
+
+        public void SnapshotTheIndex()
+        {
+            var snapshot = new IndexSnapshot
             {
-                var record = log.Read<Record<T>>(guid);
-                switch (record.Operation)
-                {
-                    case Operation.Append:
-                        index.AddOrUpdate(record.Key, guid, (__,___) => guid);
-                        break;
-                    case Operation.Delete:
-                        index.TryRemove(record.Key, out _);
-                        break;
-                }
+                Index = this.index.AsEnumerable().ToArray(),
+            };
+            using (var file = File.Create("index.index"))
+            {
+                serializer.Serialize(snapshot, file);
+                file.Flush();
             }
         }
 
-        
+        public void LoadTheIndex()
+        {
+            IEnumerable<Guid> scan = this.log.ReadAllKeys();
+            if (File.Exists("index.index"))
+            {
+                var highest = Guid.Empty.ToString();
+                using (var file = File.OpenRead("index.index"))
+                {
+                    var snapshot = serializer.Deserialize<IndexSnapshot>(file);
+                    foreach (var entry in snapshot.Index)
+                    {
+                        if (string.Compare(entry.Value.ToString(), highest) > 0) highest = entry.Value.ToString();
+                        this.index.AddOrUpdate(entry.Key, entry.Value, (_, __) => entry.Value);
+                    }
+                }
+                if (highest != Guid.Empty.ToString())
+                {
+                    scan = this.log.ReadAllKeys(Guid.Parse(highest)).Skip(1);
+                }
+            }
+
+            // catch the index up
+            foreach (var position in scan)
+            {
+                var value = this.log.Read<Record<T>>(position);
+                this.index.Apply(value, position);
+            }
+        }
 
         public Guid Append(string key, T value)
         {
@@ -83,7 +120,7 @@ namespace Chainsaw
             foreach (var guid in guids)
             {
                 var record = records[i++];
-                index.AddOrUpdate(record.Key, guid, (_, __) => guid);
+                index.Apply(record, guid);
             }
             return guids;
         }
@@ -117,6 +154,8 @@ namespace Chainsaw
                 yield return value;
             }
         }
+
+        public int Count => this.index.Keys.Count;
 
 
         public void Dispose()
