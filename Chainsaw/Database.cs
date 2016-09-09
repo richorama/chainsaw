@@ -12,7 +12,7 @@ namespace Chainsaw
 {
     public enum Operation
     {
-        Append,
+        Set,
         Delete
     }
 
@@ -32,15 +32,22 @@ namespace Chainsaw
     }
    
 
+
+    /// <summary>
+    /// Thread safe
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public class Database<T> : IDisposable
     {
         LogWriter log;
         readonly ConcurrentDictionary<string, Guid> index = new ConcurrentDictionary<string, Guid>();
         Serializer serializer = new Serializer();
+        string Directory { get; }
 
-        public Database(string directory, long logCapacity = 4 * 1024 * 1024)
+        public Database(string directory, long logCapacity = 40 * 1024 * 1024)
         {
-            log = new LogWriter(directory, logCapacity);
+            this.log = new LogWriter(directory, logCapacity);
+            this.Directory = directory;
 
             LoadTheIndex();
         }
@@ -51,7 +58,7 @@ namespace Chainsaw
             {
                 Index = this.index.AsEnumerable().ToArray(),
             };
-            using (var file = File.Create("index.index"))
+            using (var file = File.Create(Path.Combine(this.Directory, "index.index")))
             {
                 serializer.Serialize(snapshot, file);
                 file.Flush();
@@ -61,10 +68,10 @@ namespace Chainsaw
         public void LoadTheIndex()
         {
             IEnumerable<Guid> scan = this.log.ReadAllKeys();
-            if (File.Exists("index.index"))
+            if (File.Exists(Path.Combine(this.Directory, "index.index")))
             {
                 var highest = Guid.Empty.ToString();
-                using (var file = File.OpenRead("index.index"))
+                using (var file = File.OpenRead(Path.Combine(this.Directory, "index.index")))
                 {
                     var snapshot = serializer.Deserialize<IndexSnapshot>(file);
                     foreach (var entry in snapshot.Index)
@@ -87,11 +94,11 @@ namespace Chainsaw
             }
         }
 
-        public Guid Append(string key, T value)
+        public Guid Set(string key, T value)
         {
             var record = new Record<T>
             {
-                Operation = Operation.Append,
+                Operation = Operation.Set,
                 Key = key,
                 Value = value
             };
@@ -99,6 +106,8 @@ namespace Chainsaw
             index.AddOrUpdate(key, guid, (_, __) => guid);
             return guid;
         }
+
+        Guid _;
 
         public Guid Delete(string key)
         {
@@ -109,13 +118,13 @@ namespace Chainsaw
                 Value = default(T)
             };
             var guid = log.Append(record);
-            index.AddOrUpdate(key, guid, (_, __) => guid);
+            index.TryRemove(key, out _);
             return guid;
         }
 
         public Guid[] Batch(Record<T>[] records)
         {
-            var guids = log.Batch(records as object[]);
+            var guids = log.Batch(records);
             var i = 0;
             foreach (var guid in guids)
             {
@@ -125,7 +134,7 @@ namespace Chainsaw
             return guids;
         }
 
-        public T Read(string key)
+        public T Get(string key)
         {
             Guid result;
             if (index.TryGetValue(key, out result))
@@ -157,6 +166,11 @@ namespace Chainsaw
 
         public int Count => this.index.Keys.Count;
 
+
+        public BatchOperation<T> CreateBatch()
+        {
+            return new BatchOperation<T>(this);
+        }
 
         public void Dispose()
         {

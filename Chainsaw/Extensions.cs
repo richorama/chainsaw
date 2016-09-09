@@ -19,7 +19,7 @@ namespace Chainsaw
         {
             switch (record.Operation)
             {
-                case Operation.Append:
+                case Operation.Set:
                     value.AddOrUpdate(record.Key, position, (_, __) => position);
                     break;
                 case Operation.Delete:

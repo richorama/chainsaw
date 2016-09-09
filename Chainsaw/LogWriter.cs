@@ -132,7 +132,7 @@ namespace Chainsaw
             return GenerateGuid(markGeneration, mark - length + headerSize, lengthStream.Length);
         }
 
-        public Guid[] Batch(object[] values)
+        public Guid[] Batch<T>(T[] values)
         {
             if (null == values) throw new ArgumentNullException(nameof(values));
 
@@ -190,7 +190,7 @@ namespace Chainsaw
                     // skip to the end
                     stream.Position = finalPosition;
 
-                    guidList.Add(GenerateGuid(markGeneration, headerPosition + headerSize, recordLength));
+                    guidList.Add(GenerateGuid(markGeneration, mark - length + headerPosition + headerSize , recordLength));
                 }
                 stream.Flush();
             }

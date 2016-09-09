@@ -43,6 +43,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BatchOperation.cs" />
     <Compile Include="Database.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="LengthStream.cs" />
