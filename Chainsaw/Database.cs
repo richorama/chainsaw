@@ -1,12 +1,25 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Runtime.InteropServices;
 using System.Collections.Concurrent;
-using Wire;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Wire;
+
+/*  TODO
+
+    Support index saving on a separate thread
+    Secondary indexes
+    Compaction
+    Read GUID on reading elements (to help with sync)
+    ETag (using GUID)?
+    Investigate BTree instead of concurrent dictionary
+    Better GUID comparison when loading index
+    Split index into a separate class (concern)
+    IOC on Serailizer
+    Catch exception with record size greater than log size
+    Retrieve current value for high water mark
+
+*/
 
 namespace Chainsaw
 {
@@ -16,22 +29,18 @@ namespace Chainsaw
         Delete
     }
 
-
     public struct Record<T>
     {
         public Operation Operation { get; set; }
         public string Key { get; set; }
         public T Value { get; set; }
     }
-
     
 
     public class IndexSnapshot
     {
         public KeyValuePair<string,Guid>[] Index { get; set; }
     }
-   
-
 
     /// <summary>
     /// Thread safe
@@ -44,7 +53,7 @@ namespace Chainsaw
         Serializer serializer = new Serializer();
         string Directory { get; }
 
-        public Database(string directory, long logCapacity = 40 * 1024 * 1024)
+        public Database(string directory = "db", long logCapacity = 40 * 1024 * 1024)
         {
             this.log = new LogWriter(directory, logCapacity);
             this.Directory = directory;
@@ -174,7 +183,7 @@ namespace Chainsaw
 
         public void Dispose()
         {
-            this.log.Dispose();
+            this.log?.Dispose();
         }
 
     }

@@ -14,6 +14,7 @@ namespace Chainsaw
                 Length = BitConverter.ToInt32(bytes, 8)
             };
         }
+
         static Guid _;
         public static void Apply<T>(this ConcurrentDictionary<string, Guid> value, Record<T> record, Guid position)
         {

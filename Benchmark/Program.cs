@@ -16,6 +16,12 @@ baseline
     Opening snapshot database took 432ms
     Querying 100000 records took 2787ms
 
+increase log size
+    Storing 100000 records took 4400ms
+    Opening database took 2629ms
+    Snapshotting database took 92ms
+    Opening snapshot database took 1624ms
+    Querying 100000 records took 2414ms
 
  */
 namespace Benchmark
@@ -51,7 +57,7 @@ namespace Benchmark
             }
 
             watch.Stop();
-            Console.WriteLine($"Loading {recordCount} records took {watch.ElapsedMilliseconds}ms");
+            Console.WriteLine($"Storing {recordCount} records took {watch.ElapsedMilliseconds}ms");
             watch.Reset();
             watch.Start();
 

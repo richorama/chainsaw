@@ -56,10 +56,6 @@ namespace Chainsaw
             }
         }
 
-
-
-
-
         public int GetNextPosition()
 	    {
 		    using (var view = this.File.CreateViewAccessor())
@@ -76,14 +72,6 @@ namespace Chainsaw
 			}
 
 	    }
-
-	    public object Read(long position, long length)
-        {
-            using (var stream = this.File.CreateViewStream(position, length))
-            {
-                return this.serializer.Deserialize(stream);
-            }
-        }
 
         public T Read<T>(long position, long length)
         {

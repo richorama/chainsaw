@@ -12,7 +12,7 @@ namespace Chainsaw
     /// Not thread safe
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class BatchOperation<T>
+    public struct BatchOperation<T>
     {
         public Database<T> Database { get; }
 
