@@ -103,6 +103,7 @@ namespace Chainsaw
             return $"{(int)this.State},{this.Capacity},{this.Filename}";
         }
 
+        
         public static LogReader FromString(string value, string directory)
         {
             var parts = value.Split(',');
