@@ -29,13 +29,21 @@ namespace Chainsaw
         Delete
     }
 
-    public struct Record<T>
+    public struct Rec<T>
     {
         public Operation Operation { get; set; }
         public string Key { get; set; }
         public T Value { get; set; }
     }
-    
+
+    public struct Record<T>
+    {
+        public Operation Operation { get; set; }
+        public string Key { get; set; }
+        public T Value { get; set; }
+        public Guid Tag { get; set; }
+    }
+
 
     public class IndexSnapshot
     {
@@ -98,14 +106,14 @@ namespace Chainsaw
             // catch the index up
             foreach (var position in scan)
             {
-                var value = this.log.Read<Record<T>>(position);
+                var value = this.log.Read<Rec<T>>(position);
                 this.index.Apply(value, position);
             }
         }
 
         public Guid Set(string key, T value)
         {
-            var record = new Record<T>
+            var record = new Rec<T>
             {
                 Operation = Operation.Set,
                 Key = key,
@@ -120,7 +128,7 @@ namespace Chainsaw
 
         public Guid Delete(string key)
         {
-            var record = new Record<T>
+            var record = new Rec<T>
             {
                 Operation = Operation.Delete,
                 Key = key,
@@ -131,7 +139,7 @@ namespace Chainsaw
             return guid;
         }
 
-        public Guid[] Batch(Record<T>[] records)
+        public Guid[] Batch(Rec<T>[] records)
         {
             var guids = log.Batch(records);
             var i = 0;
@@ -148,19 +156,34 @@ namespace Chainsaw
             Guid result;
             if (index.TryGetValue(key, out result))
             {
-                var value = log.Read<Record<T>>(result);
+                var value = log.Read<Rec<T>>(result);
                 return value.Value;
             }
             return default(T);
         }
 
+        public Guid GetTag(string key)
+        {
+            Guid result;
+            if (index.TryGetValue(key, out result))
+            {
+                return result;
+            }
+            return Guid.Empty;
+        }
 
         public IEnumerable<Record<T>> Scan()
         {
             foreach (var key in this.log.ReadAllKeys())
             {
-                var value = this.log.Read<Record<T>>(key);
-                yield return value;
+                var value = this.log.Read<Rec<T>>(key);
+                yield return new Record<T>
+                {
+                    Key = value.Key,
+                    Operation = value.Operation,
+                    Tag = key,
+                    Value = value.Value
+                };
             }
         }
 
@@ -168,8 +191,14 @@ namespace Chainsaw
         {
             foreach (var key in this.log.ReadAllKeys(from).Skip(1))
             {
-                var value = this.log.Read<Record<T>>(key);
-                yield return value;
+                var value = this.log.Read<Rec<T>>(key);
+                yield return new Record<T>
+                {
+                    Key = value.Key,
+                    Operation = value.Operation,
+                    Tag = key,
+                    Value = value.Value
+                };
             }
         }
 

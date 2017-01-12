@@ -16,18 +16,18 @@ namespace Chainsaw
     {
         public Database<T> Database { get; }
 
-        public List<Record<T>> Operations { get; }
+        public List<Rec<T>> Operations { get; }
 
         public BatchOperation(Database<T> database)
         {
             if (null == database) throw new ArgumentNullException(nameof(database));
             this.Database = database;
-            this.Operations = new List<Record<T>>();
+            this.Operations = new List<Rec<T>>();
         }
 
         public void Set(string key, T value)
         {
-            this.Operations.Add(new Record<T>
+            this.Operations.Add(new Rec<T>
             {
                 Key = key,
                 Operation = Operation.Set,
@@ -37,7 +37,7 @@ namespace Chainsaw
 
         public void Delete(string key)
         {
-            this.Operations.Add(new Record<T>
+            this.Operations.Add(new Rec<T>
             {
                 Key = key,
                 Operation = Operation.Delete

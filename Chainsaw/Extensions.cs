@@ -16,7 +16,7 @@ namespace Chainsaw
         }
 
         static Guid _;
-        public static void Apply<T>(this ConcurrentDictionary<string, Guid> value, Record<T> record, Guid position)
+        public static void Apply<T>(this ConcurrentDictionary<string, Guid> value, Rec<T> record, Guid position)
         {
             switch (record.Operation)
             {
