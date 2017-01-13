@@ -54,6 +54,25 @@ using (var db = new Database<MyPocoClass>("path/to/database"))
     }
 }
 ```
+
+Additional Indexes:
+
+```c#
+using (var db = new Database<string>("path/to/database"))
+{
+    db.Set("a", "A");
+    db.Set("b", "B");
+
+    // index values by length
+    var query = db.RegisterSecondaryIndex<int>(x => x.Length);
+
+    db.Set("c", "CC");
+    db.Set("d", "DDD");
+
+    query(1).ToArray(); // "A" and "B"
+}
+```
+
 # License
 
 MIT
