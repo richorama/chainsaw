@@ -18,7 +18,7 @@ namespace Chainsaw.Tests
             using (var db = new Database<string>("databasetest"))
             {
                 for (var i = 0; i < 100; i++)
-                {   
+                {
                     db.Set("key" + i.ToString(), "value" + i.ToString());
                 }
 
@@ -101,6 +101,35 @@ namespace Chainsaw.Tests
             }
         }
 
+        [TestMethod]
+        public void SecondaryIndex()
+        {
+            if (Directory.Exists("SecondaryIndex")) Directory.Delete("SecondaryIndex", true);
 
+            using (var db = new Database<string>("SecondaryIndex"))
+            {
+                db.Set("a", "A");
+                db.Set("b", "B");
+
+                var query = db.RegisterSecondaryIndex<int>(x => x.Length);
+
+                db.Set("c", "CC");
+                db.Set("d", "DDD");
+
+                var results = query(1).ToArray();
+                Assert.AreEqual(2, results.Length);
+                Assert.IsTrue(results.Contains("A"));
+                Assert.IsTrue(results.Contains("B"));
+
+                results = query(2).ToArray();
+                Assert.AreEqual(1, results.Length);
+                Assert.IsTrue(results.Contains("CC"));
+
+                results = query(3).ToArray();
+                Assert.AreEqual(1, results.Length);
+                Assert.IsTrue(results.Contains("DDD"));
+            }
+
+        }
     }
 }

@@ -197,7 +197,6 @@ namespace Chainsaw
             return guidList.ToArray();
         }
 
-
         public static Guid GenerateGuid(long generation, long position, long length)
         {
             return new Guid(new byte[]

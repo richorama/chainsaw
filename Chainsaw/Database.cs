@@ -8,16 +8,14 @@ using Wire;
 /*  TODO
 
     Support index saving on a separate thread
-    Secondary indexes
     Compaction
-    Read GUID on reading elements (to help with sync)
-    ETag (using GUID)?
     Investigate BTree instead of concurrent dictionary
     Better GUID comparison when loading index
     Split index into a separate class (concern)
     IOC on Serailizer
     Catch exception with record size greater than log size
     Retrieve current value for high water mark
+    Readthrough cache?
 
 */
 
@@ -60,6 +58,7 @@ namespace Chainsaw
         readonly ConcurrentDictionary<string, Guid> index = new ConcurrentDictionary<string, Guid>();
         Serializer serializer = new Serializer();
         string Directory { get; }
+        HashSet<ISecondaryIndex<T>> Indexes = new HashSet<ISecondaryIndex<T>>();
 
         public Database(string directory = "db", long logCapacity = 40 * 1024 * 1024)
         {
@@ -68,6 +67,23 @@ namespace Chainsaw
 
             LoadTheIndex();
         }
+
+        public Func<Y,IEnumerable<T>> RegisterSecondaryIndex<Y>(Func<T, Y> indexer)
+        {
+            var secondaryIndex = new SecondaryIndex<T, Y>(indexer);
+
+            this.Indexes.Add(secondaryIndex);
+            foreach (var item in this.Scan())
+            {
+                secondaryIndex.Add(item.Key, item.Value, item.Tag);
+            }
+
+            return y => 
+            {
+                return secondaryIndex.Query(y).Select(x => log.Read<Rec<T>>(x).Value);
+            };
+        }
+
 
         public void SnapshotTheIndex()
         {
@@ -121,6 +137,12 @@ namespace Chainsaw
             };
             var guid = log.Append(record);
             index.AddOrUpdate(key, guid, (_, __) => guid);
+
+            foreach (var index in this.Indexes)
+            {
+                index.Add(key, value, guid);
+            }
+
             return guid;
         }
 
@@ -136,6 +158,12 @@ namespace Chainsaw
             };
             var guid = log.Append(record);
             index.TryRemove(key, out _);
+
+            foreach (var index in this.Indexes)
+            {
+                index.Remove(key);
+            }
+
             return guid;
         }
 
@@ -148,6 +176,27 @@ namespace Chainsaw
                 var record = records[i++];
                 index.Apply(record, guid);
             }
+
+            i = 0;
+            foreach (var guid in guids)
+            {
+                var record = records[i++];
+                if (record.Operation == Operation.Set)
+                {
+                    foreach (var index in this.Indexes)
+                    {
+                        index.Add(record.Key, record.Value, guid);
+                    }
+                }
+                else
+                {
+                    foreach (var index in this.Indexes)
+                    {
+                        index.Remove(record.Key);
+                    }
+                }
+            }
+
             return guids;
         }
 
