@@ -30,6 +30,14 @@ server GC
     Opening snapshot database took 579ms
     Querying 100000 records took 2870ms
 
+x64
+    Storing 100000 records took 4715ms
+    Opening database took 2355ms
+    Snapshotting database took 274ms
+    Opening snapshot database took 458ms
+    Querying 100000 records took 2307ms
+
+
  */
 namespace Benchmark
 {
