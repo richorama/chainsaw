@@ -16,6 +16,7 @@ using Wire;
     Catch exception with record size greater than log size
     Retrieve current value for high water mark
     Readthrough cache?
+    Benchmark with some serious data
 
 */
 

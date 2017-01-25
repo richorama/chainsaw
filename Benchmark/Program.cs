@@ -23,6 +23,13 @@ increase log size
     Opening snapshot database took 1624ms
     Querying 100000 records took 2414ms
 
+server GC
+    Storing 100000 records took 6715ms
+    Opening database took 3024ms
+    Snapshotting database took 87ms
+    Opening snapshot database took 579ms
+    Querying 100000 records took 2870ms
+
  */
 namespace Benchmark
 {
