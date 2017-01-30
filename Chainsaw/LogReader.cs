@@ -2,10 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.IO.MemoryMappedFiles;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Wire;
 
 namespace Chainsaw
 {
@@ -18,12 +14,13 @@ namespace Chainsaw
 
     public class LogReader : IDisposable
     {
-        public LogReader(string directory, string filename, long capacity, LogState initialState)
+        public LogReader(ISerializer serializer, string directory, string filename, long capacity, LogState initialState)
         {
             this.State = initialState;
             this.Capacity = capacity;
             this.Filename = filename;
             this.File = MemoryMappedFile.CreateFromFile(Path.Combine(directory, filename), FileMode.OpenOrCreate, filename, capacity, MemoryMappedFileAccess.ReadWrite);
+            this.serializer = serializer;
         }
 
         const int headerSize = sizeof(int);
@@ -31,7 +28,7 @@ namespace Chainsaw
         public MemoryMappedFile File { get; }
         public long Capacity { get;  }
         public string Filename { get; }
-        readonly Serializer serializer = new Serializer();
+        readonly ISerializer serializer;
 
         public void Clean()
         {
@@ -104,10 +101,10 @@ namespace Chainsaw
         }
 
         
-        public static LogReader FromString(string value, string directory)
+        public static LogReader FromString(ISerializer serializer, string value, string directory)
         {
             var parts = value.Split(',');
-            return new LogReader(directory, parts[2], long.Parse(parts[1]), (LogState)int.Parse(parts[0]));
+            return new LogReader(serializer, directory, parts[2], long.Parse(parts[1]), (LogState)int.Parse(parts[0]));
         }
     }
 }

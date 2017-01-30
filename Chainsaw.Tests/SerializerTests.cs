@@ -1,7 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.IO.MemoryMappedFiles;
-using Wire;
 
 namespace Chainsaw.Tests
 {
@@ -26,7 +25,7 @@ namespace Chainsaw.Tests
 
         private static void TestSerializer(Stream stream)
         {
-            var serializer = new Serializer();
+            var serializer = new HyperionSerializer();
             serializer.Serialize(new TestPoco2 { Value = 42 }, stream);
             stream.Position = 0;
             stream.Flush();

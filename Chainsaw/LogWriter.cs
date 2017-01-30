@@ -4,7 +4,6 @@ using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Linq;
 using System.Threading;
-using Wire;
 
 namespace Chainsaw
 {
@@ -26,12 +25,12 @@ namespace Chainsaw
         public long Capacity { get; }
         public string Directory { get; }
         readonly object sync = new object();
-        readonly Serializer serializer = new Serializer();
+        readonly ISerializer serializer;
 
         LogReader AddLogFile(int generation)
         {
             var thisLogFilename = $"log.{generation}.log";
-            var logFile = new LogReader(this.Directory, thisLogFilename, this.Capacity, LogState.Clean);
+            var logFile = new LogReader(serializer, this.Directory, thisLogFilename, this.Capacity, LogState.Clean);
             this.Files.Add(logFile);
             return logFile;
         }
@@ -44,7 +43,7 @@ namespace Chainsaw
             {
                 foreach (var line in File.ReadLines(Path.Combine(this.Directory, ".manifest")).Where(x => !string.IsNullOrWhiteSpace(x)))
                 {
-                    this.Files.Add(LogReader.FromString(line, this.Directory));
+                    this.Files.Add(LogReader.FromString(serializer, line, this.Directory));
                     generation++;
                 }
                 this.ActiveFile = this.Files.FirstOrDefault(x => x.State == LogState.Active);
@@ -67,12 +66,12 @@ namespace Chainsaw
             File.WriteAllText(Path.Combine(this.Directory, ".manifest"), string.Join("\r\n", this.Files.Select(x => x.ToString())));
         }
 
-        public LogWriter(string directory, long capacity)
+        public LogWriter(ISerializer serializer, string directory, long capacity)
         {
             this.Files = new List<LogReader>();
             this.Capacity = capacity;
             this.Directory = directory;
-
+            this.serializer = serializer;
             OpenManifest();
         }
 

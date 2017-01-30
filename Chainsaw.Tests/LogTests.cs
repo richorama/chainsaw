@@ -17,10 +17,12 @@ namespace Chainsaw.Tests
     [TestClass]
     public class LogTests
     {
+        ISerializer serializer = new HyperionSerializer();
+
         [TestMethod]
         public void TestLogFileToString()
         {
-            using (var logFile = new LogReader(".", "file1.log", 100, LogState.Full))
+            using (var logFile = new LogReader(serializer, ".", "file1.log", 100, LogState.Full))
             {
                 Assert.AreEqual("2,100,file1.log", logFile.ToString());
             }
@@ -29,7 +31,7 @@ namespace Chainsaw.Tests
         [TestMethod]
         public void TestLogFileFromString()
         {
-            using (var logFile = LogReader.FromString("2,100,file1.log", "."))
+            using (var logFile = LogReader.FromString(serializer, "2,100,file1.log", "."))
             {
                 Assert.AreEqual(100, logFile.Capacity);
                 Assert.AreEqual(LogState.Full, logFile.State);
@@ -43,7 +45,7 @@ namespace Chainsaw.Tests
           
             if (Directory.Exists("test")) Directory.Delete("test", true);
 
-            using (var log = new LogWriter("test", 4 * 1024))
+            using (var log = new LogWriter(serializer, "test", 4 * 1024))
             {
                 for (var i = 0; i < 100; i++)
                 {
@@ -55,7 +57,7 @@ namespace Chainsaw.Tests
                 }
             }
 
-            using (var log2 = new LogWriter("test", 4 * 1024))
+            using (var log2 = new LogWriter(serializer, "test", 4 * 1024))
             {
                 var counter = 0;
                 foreach (var logFile in log2.Files)
@@ -72,12 +74,12 @@ namespace Chainsaw.Tests
                 Assert.AreEqual(100, counter);
             }
 
-            using (var log = new LogWriter("test", 4 * 1024))
+            using (var log = new LogWriter(serializer, "test", 4 * 1024))
 			{
 				Assert.AreEqual(100, log.ReadAllKeys().Count());
 			}
 
-            using (var log = new LogWriter("test", 4 * 1024))
+            using (var log = new LogWriter(serializer, "test", 4 * 1024))
             {
 
                 var key = log.ReadAllKeys().Skip(50).First();
@@ -91,13 +93,13 @@ namespace Chainsaw.Tests
         {
             if (Directory.Exists("reopen")) Directory.Delete("reopen", true);
 
-            using (var log = new LogWriter("reopen", 4 * 1024))
+            using (var log = new LogWriter(serializer, "reopen", 4 * 1024))
             {
                 var buffer = new byte[] { 1 };
                 log.Append(buffer);
             }
 
-            using (var log = new LogWriter("reopen", 4 * 1024))
+            using (var log = new LogWriter(serializer, "reopen", 4 * 1024))
             {
                 var buffer = new byte[] { 2 };
                 log.Append(buffer);
@@ -117,7 +119,7 @@ namespace Chainsaw.Tests
             var parallelism = 4;
             var batch = 20000;
 
-            using (var log = new LogWriter("sat", 4 * 1024 * 1024))
+            using (var log = new LogWriter(serializer, "sat", 4 * 1024 * 1024))
             {
                 var threads = new List<Thread>();
 
@@ -169,7 +171,7 @@ namespace Chainsaw.Tests
             var batch = 300000 / parallelism;
 
 
-            using (var log = new LogWriter("raw", 4 * 1024 * 1024))
+            using (var log = new LogWriter(serializer, "raw", 4 * 1024 * 1024))
             {
                 var threads = new List<Thread>();
                 var buffer = new byte[] { 1, 2 };
@@ -217,7 +219,7 @@ namespace Chainsaw.Tests
 
             if (Directory.Exists("test")) Directory.Delete("test", true);
 
-            using (var log = new LogWriter("test", 4 * 1024))
+            using (var log = new LogWriter(serializer, "test", 4 * 1024))
             {
                 var pocos = new List<TestPoco>();
                 for (var i = 0; i < 10; i++)

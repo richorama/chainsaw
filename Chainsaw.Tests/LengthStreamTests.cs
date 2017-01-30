@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Wire;
 
 namespace Chainsaw.Tests
 {
@@ -26,7 +25,7 @@ namespace Chainsaw.Tests
             var example = new Example { Foo = "FOO", Bar = 42, Qux = Guid.NewGuid() };
             var lengthStream = new LengthStream();
 
-            var serializer = new Serializer();
+            var serializer = new HyperionSerializer();
             serializer.Serialize(example, lengthStream);
             Assert.AreNotEqual(0, lengthStream.Length);
 

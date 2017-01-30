@@ -37,6 +37,13 @@ x64
     Opening snapshot database took 458ms
     Querying 100000 records took 2307ms
 
+Wire -> Hyperion
+
+    Storing 100000 records took 5022ms
+    Opening database took 2828ms
+    Snapshotting database took 302ms
+    Opening snapshot database took 569ms
+    Querying 100000 records took 2873ms
 
  */
 namespace Benchmark
@@ -59,7 +66,7 @@ namespace Benchmark
 
             var watch = Stopwatch.StartNew();
 
-            using (var db = new Database<FakeRecord>("test"))
+            using (var db = new Database<FakeRecord>( "test"))
             {
                 for (var i = 0; i < recordCount; i++)
                 {

@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Wire;
 
 /*  TODO
 
@@ -57,14 +56,24 @@ namespace Chainsaw
     {
         LogWriter log;
         readonly ConcurrentDictionary<string, Guid> index = new ConcurrentDictionary<string, Guid>();
-        Serializer serializer = new Serializer();
         string Directory { get; }
         HashSet<ISecondaryIndex<T>> Indexes = new HashSet<ISecondaryIndex<T>>();
+        ISerializer serializer;
 
-        public Database(string directory = "db", long logCapacity = 40 * 1024 * 1024)
+
+        public Database(string directory = "db", long logCapacity = 40 * 1024 * 1024, ISerializer serializer = null)
         {
-            this.log = new LogWriter(directory, logCapacity);
+            this.serializer = serializer;
+            if (this.serializer == null)
+            {
+                this.serializer = new HyperionSerializer();
+            }
+
+            this.log = new LogWriter(this.serializer, directory, logCapacity);
             this.Directory = directory;
+
+
+
 
             LoadTheIndex();
         }
