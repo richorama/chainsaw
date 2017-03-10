@@ -11,7 +11,6 @@ using System.Linq;
     Investigate BTree instead of concurrent dictionary
     Better GUID comparison when loading index
     Split index into a separate class (concern)
-    IOC on Serailizer
     Catch exception with record size greater than log size
     Retrieve current value for high water mark
     Readthrough cache?
@@ -71,8 +70,6 @@ namespace Chainsaw
 
             this.log = new LogWriter(this.serializer, directory, logCapacity);
             this.Directory = directory;
-
-
 
 
             LoadTheIndex();
