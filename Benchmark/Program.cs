@@ -1,49 +1,15 @@
 ﻿using Chainsaw;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 /*
-baseline
-    Loading 100000 records took 5120ms
-    Opening database took 3141ms
-    Snapshotting database took 100ms
-    Opening snapshot database took 432ms
-    Querying 100000 records took 2787ms
-
-increase log size
-    Storing 100000 records took 4400ms
-    Opening database took 2629ms
-    Snapshotting database took 92ms
-    Opening snapshot database took 1624ms
-    Querying 100000 records took 2414ms
-
-server GC
-    Storing 100000 records took 6715ms
-    Opening database took 3024ms
-    Snapshotting database took 87ms
-    Opening snapshot database took 579ms
-    Querying 100000 records took 2870ms
-
-x64
-    Storing 100000 records took 4715ms
-    Opening database took 2355ms
-    Snapshotting database took 274ms
-    Opening snapshot database took 458ms
-    Querying 100000 records took 2307ms
-
-Wire -> Hyperion
-
-    Storing 100000 records took 5022ms
-    Opening database took 2828ms
-    Snapshotting database took 302ms
-    Opening snapshot database took 569ms
-    Querying 100000 records took 2873ms
+new baseline - new hardware    
+    Storing 100000 records took 2055ms
+    Opening database took 1246ms
+    Snapshotting database took 91ms
+    Opening snapshot database took 343ms
+    Querying 100000 records took 1176ms
 
  */
 namespace Benchmark
