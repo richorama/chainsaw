@@ -11,6 +11,15 @@ new baseline - new hardware
     Opening snapshot database took 343ms
     Querying 100000 records took 1176ms
 
+count length with an int
+
+    Storing 100000 records took 1976ms
+    Opening database took 1104ms
+    Snapshotting database took 68ms
+    Opening snapshot database took 275ms
+    Querying 100000 records took 1043ms
+
+
  */
 namespace Benchmark
 {
